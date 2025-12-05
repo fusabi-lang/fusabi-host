@@ -47,7 +47,7 @@ mod sandbox;
 mod value;
 
 pub use capabilities::{Capabilities, Capability};
-pub use compile::{compile_source, compile_file, CompileOptions, CompileResult, Metadata};
+pub use compile::{compile_source, compile_file, validate_bytecode, CompileOptions, CompileResult, Metadata};
 pub use convert::{FromValue, IntoValue, ValueConversionError};
 #[cfg(feature = "serde-support")]
 pub use convert::{from_value_serde, to_value_serde};
