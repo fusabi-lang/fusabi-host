@@ -41,15 +41,21 @@ mod convert;
 mod engine;
 mod error;
 mod limits;
-mod macros;
+pub mod macros;
 mod pool;
 mod sandbox;
 mod value;
 
 pub use capabilities::{Capabilities, Capability};
-pub use compile::{compile_source, compile_file, CompileOptions, CompileResult, Metadata};
+pub use compile::{
+    compile_source, compile_file, validate_bytecode, extract_bytecode_metadata, CompileOptions,
+    CompileResult, Metadata,
+};
 pub use convert::{FromValue, IntoValue, ValueConversionError};
-pub use engine::{Engine, EngineConfig, ExecutionContext};
+
+#[cfg(feature = "serde-support")]
+pub use convert::{from_value_serde, to_value_serde};
+pub use engine::{Engine, EngineConfig, ExecutionContext, HostRegistry};
 pub use error::{Error, Result};
 pub use limits::{Limits, LimitViolation};
 pub use pool::{EnginePool, PoolConfig, PoolHandle, PoolStats};

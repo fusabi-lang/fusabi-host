@@ -282,11 +282,7 @@ impl From<&str> for Value {
     }
 }
 
-impl From<Vec<Value>> for Value {
-    fn from(v: Vec<Value>) -> Self {
-        Value::List(v)
-    }
-}
+
 
 impl From<HashMap<String, Value>> for Value {
     fn from(m: HashMap<String, Value>) -> Self {

@@ -5,10 +5,10 @@ use std::thread;
 use std::time::Duration;
 
 use fusabi_host::{
-    compile::{compile_source, CompileOptions},
-    engine::{Engine, EngineConfig},
-    pool::{EnginePool, PoolConfig},
-    sandbox::SandboxConfig,
+    compile_source, CompileOptions,
+    Engine, EngineConfig,
+    EnginePool, PoolConfig,
+    SandboxConfig,
     Capabilities, Capability, Error, Limits, Result, Value,
 };
 
@@ -39,7 +39,7 @@ fn test_pool_concurrent_execution() {
 
     let handles: Vec<_> = (1..=8)
         .map(|i| {
-            let pool = Arc::clone(&pool);
+            let pool: Arc<EnginePool> = Arc::clone(&pool);
             thread::spawn(move || {
                 let result = pool.execute(&format!("{}", i * 10)).unwrap();
                 result.as_int().unwrap()
@@ -110,7 +110,7 @@ fn test_limits_enforcement() {
 
 #[test]
 fn test_sandbox_path_policy() {
-    use fusabi_host::sandbox::PathPolicy;
+    use fusabi_host::PathPolicy;
     use std::path::Path;
 
     let policy = PathPolicy::DenyAll;
@@ -122,7 +122,7 @@ fn test_sandbox_path_policy() {
 
 #[test]
 fn test_sandbox_net_policy() {
-    use fusabi_host::sandbox::NetPolicy;
+    use fusabi_host::NetPolicy;
 
     let policy = NetPolicy::allow(["api.example.com", "*.trusted.org"]);
 
@@ -133,7 +133,7 @@ fn test_sandbox_net_policy() {
 
 #[test]
 fn test_value_conversions() {
-    use fusabi_host::convert::FromValue;
+    use fusabi_host::FromValue;
 
     // Test basic conversions
     assert_eq!(i64::from_value(Value::Int(42)).unwrap(), 42);
@@ -212,7 +212,7 @@ fn test_compile_options_presets() {
 
 #[test]
 fn test_host_registry() {
-    use fusabi_host::engine::HostRegistry;
+    use fusabi_host::HostRegistry;
 
     let mut registry = HostRegistry::new();
 
@@ -227,12 +227,12 @@ fn test_host_registry() {
 #[test]
 fn test_typed_host_functions() {
     use fusabi_host::macros::typed_host_fn_2;
-    use fusabi_host::sandbox::Sandbox;
+    use fusabi_host::Sandbox;
 
     let add = typed_host_fn_2(|a: i64, b: i64| -> i64 { a + b });
 
     let sandbox = Sandbox::new(SandboxConfig::default()).unwrap();
-    let ctx = fusabi_host::engine::ExecutionContext::new(
+    let ctx = fusabi_host::ExecutionContext::new(
         1,
         Capabilities::none(),
         Limits::default(),
@@ -261,7 +261,7 @@ fn test_lazy_pool_init() {
 #[cfg(feature = "serde-support")]
 mod serde_tests {
     use super::*;
-    use fusabi_host::convert::{from_value_serde, to_value_serde};
+    use fusabi_host::{from_value_serde, to_value_serde};
     use serde::{Deserialize, Serialize};
 
     #[derive(Debug, PartialEq, Serialize, Deserialize)]

@@ -119,11 +119,7 @@ pub trait HostReturn {
     fn into_result(self) -> Result<Value>;
 }
 
-impl HostReturn for Value {
-    fn into_result(self) -> Result<Value> {
-        Ok(self)
-    }
-}
+
 
 impl<T: IntoValue> HostReturn for T {
     fn into_result(self) -> Result<Value> {
