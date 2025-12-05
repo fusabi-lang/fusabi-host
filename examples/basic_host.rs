@@ -1,9 +1,9 @@
 //! Basic example of using fusabi-host to execute scripts.
 
 use fusabi_host::{
-    compile::{compile_source, CompileOptions},
-    engine::{Engine, EngineConfig, HostRegistry},
-    host_fn, Capabilities, Limits, Result, Value,
+    compile_source, CompileOptions,
+    Engine, EngineConfig, HostRegistry,
+    Capabilities, Limits, Result, Value,
 };
 
 fn main() -> Result<()> {

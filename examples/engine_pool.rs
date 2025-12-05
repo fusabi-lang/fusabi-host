@@ -5,7 +5,7 @@ use std::thread;
 use std::time::Duration;
 
 use fusabi_host::{
-    pool::{EnginePool, PoolConfig},
+    EnginePool, PoolConfig,
     Capabilities, Limits, Result,
 };
 

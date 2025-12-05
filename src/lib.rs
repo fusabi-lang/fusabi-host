@@ -49,8 +49,11 @@ mod value;
 pub use capabilities::{Capabilities, Capability};
 pub use compile::{compile_source, compile_file, CompileOptions, CompileResult, Metadata};
 pub use convert::{FromValue, IntoValue, ValueConversionError};
-pub use engine::{Engine, EngineConfig, ExecutionContext};
+#[cfg(feature = "serde-support")]
+pub use convert::{from_value_serde, to_value_serde};
+pub use engine::{Engine, EngineConfig, ExecutionContext, HostRegistry, HostFn};
 pub use error::{Error, Result};
+pub use macros::typed_host_fn_2;
 pub use limits::{Limits, LimitViolation};
 pub use pool::{EnginePool, PoolConfig, PoolHandle, PoolStats};
 pub use sandbox::{Sandbox, SandboxConfig, PathPolicy, NetPolicy};
