@@ -1,0 +1,47 @@
+# Code Owners for fusabi-host
+#
+# This file defines individuals or teams responsible for code in this repository.
+# Code owners are automatically requested for review when someone opens a pull request
+# that modifies code they own.
+#
+# Order is important; the last matching pattern takes precedence.
+# More info: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+# These owners will be requested for review unless a later match takes precedence
+* @fusabi-lang/core-team
+
+# Build and CI configuration
+/.github/ @fusabi-lang/infra-team
+/Cargo.toml @fusabi-lang/core-team
+/Cargo.lock @fusabi-lang/core-team
+
+# Documentation
+/docs/ @fusabi-lang/docs-team
+/README.md @fusabi-lang/docs-team
+/CHANGELOG.md @fusabi-lang/release-managers
+
+# Release artifacts
+/docs/RELEASE.md @fusabi-lang/release-managers
+/.github/workflows/release.yml @fusabi-lang/release-managers @fusabi-lang/infra-team
+
+# Source code by module
+/src/lib.rs @fusabi-lang/core-team
+/src/engine.rs @fusabi-lang/core-team
+/src/pool.rs @fusabi-lang/core-team
+/src/capabilities.rs @fusabi-lang/security-team
+/src/sandbox.rs @fusabi-lang/security-team
+/src/limits.rs @fusabi-lang/security-team
+/src/host_context.rs @fusabi-lang/core-team
+/src/compile.rs @fusabi-lang/compiler-team
+/src/value.rs @fusabi-lang/core-team
+/src/convert.rs @fusabi-lang/core-team
+/src/error.rs @fusabi-lang/core-team
+/src/macros.rs @fusabi-lang/core-team
+
+# Examples and tests
+/examples/ @fusabi-lang/docs-team
+/tests/ @fusabi-lang/core-team
+
+# License and legal
+/LICENSE-* @fusabi-lang/legal-team

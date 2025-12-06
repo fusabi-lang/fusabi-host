@@ -138,6 +138,16 @@ for export in &result.metadata.exports {
 }
 ```
 
+## Documentation
+
+For detailed documentation, see:
+
+- [Embedding Guide](docs/versions/vNEXT/embedding.md) - How to integrate fusabi-host in different application types
+- [Feature Flags & Platform Support](docs/versions/vNEXT/features.md) - Platform support, MSRV, and future directions
+- [Compatibility](docs/compat.md) - Version compatibility and migration guides
+- [Release Process](docs/RELEASE.md) - For maintainers
+- [API Documentation](https://docs.rs/fusabi-host) - Full API reference on docs.rs
+
 ## Version Compatibility
 
 This crate is aligned with Fusabi LTS releases:
@@ -146,7 +156,7 @@ This crate is aligned with Fusabi LTS releases:
 |-------------|--------|
 | 0.1.x | 0.18.x - 0.19.x |
 
-See [compat.md](docs/compat.md) for detailed compatibility information.
+See [docs/compat.md](docs/compat.md) for detailed compatibility information and [docs/versions/](docs/versions/) for version-specific documentation.
 
 ## License
 

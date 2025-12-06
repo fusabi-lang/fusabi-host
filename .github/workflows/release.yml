@@ -7,60 +7,182 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g., 0.1.0)'
+        description: 'Version to release (e.g., v0.2.0)'
         required: true
+        type: string
 
 env:
   CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
 
 jobs:
-  release:
-    name: Release to crates.io
+  validate:
+    name: Validate Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
 
-      - name: Get version
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Extract version from tag
         id: get_version
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
           else
-            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Verify version matches Cargo.toml
+      - name: Verify Cargo.toml version matches tag
         run: |
-          CARGO_VERSION=$(grep '^version' Cargo.toml | head -1 | cut -d'"' -f2)
-          if [ "$CARGO_VERSION" != "${{ steps.get_version.outputs.version }}" ]; then
-            echo "ERROR: Cargo.toml version ($CARGO_VERSION) doesn't match release version (${{ steps.get_version.outputs.version }})"
+          TAG_VERSION="${{ steps.get_version.outputs.VERSION }}"
+          TAG_VERSION="${TAG_VERSION#v}"  # Remove 'v' prefix
+          CARGO_VERSION=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+
+          if [ "$TAG_VERSION" != "$CARGO_VERSION" ]; then
+            echo "ERROR: Tag version ($TAG_VERSION) does not match Cargo.toml version ($CARGO_VERSION)"
             exit 1
           fi
-          echo "Version verified: $CARGO_VERSION"
+          echo "Version check passed: $TAG_VERSION"
 
-      - name: Run tests
-        run: cargo test --all-features
+      - name: Check all files formatted
+        run: cargo fmt --all -- --check
 
-      - name: Build release
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Check documentation
+        run: cargo doc --all-features --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+  test:
+    name: Test Release Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [stable]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.rust }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build
         run: cargo build --release --all-features
 
+      - name: Run tests
+        run: cargo test --release --all-features
+
+  msrv:
+    name: Test MSRV
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.75
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check MSRV compatibility
+        run: cargo check --all-features
+
+  publish:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    needs: [validate, test, msrv]
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
       - name: Publish to crates.io
+        run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
-        run: cargo publish
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [publish]
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog for version
+        id: changelog
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+
+          # Extract the section for this version from CHANGELOG.md
+          # This looks for the version header and extracts until the next version header
+          CHANGELOG=$(awk "/## \[${VERSION#v}\]/,/## \[/" CHANGELOG.md | sed '$d' | tail -n +2)
+
+          if [ -z "$CHANGELOG" ]; then
+            echo "WARNING: No changelog entry found for version $VERSION"
+            CHANGELOG="Release $VERSION
+
+See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details."
+          fi
+
+          # Write to file to preserve formatting
+          echo "$CHANGELOG" > /tmp/release_notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.get_version.outputs.version }}
-          name: fusabi-host v${{ steps.get_version.outputs.version }}
-          generate_release_notes: true
+          body_path: /tmp/release_notes.md
           draft: false
+          prerelease: ${{ contains(steps.get_version.outputs.VERSION, '-') }}
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-docs:
+    name: Trigger docs.rs Build
+    runs-on: ubuntu-latest
+    needs: [publish]
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Wait for crates.io to process
+        run: sleep 30
+
+      - name: Trigger docs.rs build
+        run: |
+          # docs.rs automatically builds on new crate versions
+          # This step is just a placeholder for future doc automation
+          echo "docs.rs will automatically build documentation for the new release"
+
+  notify:
+    name: Post-Release Notifications
+    runs-on: ubuntu-latest
+    needs: [release]
+    if: startsWith(github.ref, 'refs/tags/') && success()
+    steps:
+      - name: Extract version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Notify success
+        run: |
+          echo "✅ Release ${{ steps.get_version.outputs.VERSION }} published successfully!"
+          echo "📦 Crate: https://crates.io/crates/fusabi-host"
+          echo "📖 Docs: https://docs.rs/fusabi-host"
+          echo "🎉 Release: https://github.com/${{ github.repository }}/releases/tag/${{ steps.get_version.outputs.VERSION }}"

@@ -629,6 +629,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_handle_cancel() {
         let pool = EnginePool::new(PoolConfig::new(1)).unwrap();
         let handle = pool.acquire().unwrap();

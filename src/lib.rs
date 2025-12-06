@@ -40,21 +40,27 @@ mod compile;
 mod convert;
 mod engine;
 mod error;
+mod host_context;
 mod limits;
-mod macros;
+pub mod macros;
 mod pool;
 mod sandbox;
 mod value;
 
 pub use capabilities::{Capabilities, Capability};
-pub use compile::{compile_source, compile_file, validate_bytecode, CompileOptions, CompileResult, Metadata};
+pub use compile::{
+    compile_source, compile_file, validate_bytecode, extract_bytecode_metadata, CompileOptions,
+    CompileResult, Metadata,
+};
 pub use convert::{FromValue, IntoValue, ValueConversionError};
+
 #[cfg(feature = "serde-support")]
 pub use convert::{from_value_serde, to_value_serde};
 pub use engine::{Engine, EngineConfig, ExecutionContext, HostRegistry, HostFn};
 pub use error::{Error, Result};
-pub use macros::typed_host_fn_2;
+pub use host_context::{HostContext, LogLevel, DefaultHostContext, NoopHostContext};
 pub use limits::{Limits, LimitViolation};
+pub use macros::typed_host_fn_2;
 pub use pool::{EnginePool, PoolConfig, PoolHandle, PoolStats};
 pub use sandbox::{Sandbox, SandboxConfig, PathPolicy, NetPolicy};
 pub use value::{Value, ValueType};

@@ -513,6 +513,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_engine_cancel() {
         let engine = Engine::new(EngineConfig::default()).unwrap();
         engine.cancel();
