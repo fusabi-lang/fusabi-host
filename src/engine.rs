@@ -361,12 +361,12 @@ impl Engine {
 
     /// Execute a source string and return the result.
     pub fn execute(&self, source: &str) -> Result<Value> {
-        self.context.reset(self.config.limits.clone());
-
-        // Check for cancellation before starting
+        // Check for cancellation before starting (before reset clears it)
         if self.context.is_cancelled() {
             return Err(Error::Cancelled);
         }
+
+        self.context.reset(self.config.limits.clone());
 
         // Simulate compilation and execution
         // In a real implementation, this would call the actual Fusabi VM
@@ -375,11 +375,12 @@ impl Engine {
 
     /// Execute compiled bytecode.
     pub fn execute_bytecode(&self, bytecode: &[u8]) -> Result<Value> {
-        self.context.reset(self.config.limits.clone());
-
+        // Check for cancellation before starting (before reset clears it)
         if self.context.is_cancelled() {
             return Err(Error::Cancelled);
         }
+
+        self.context.reset(self.config.limits.clone());
 
         // Validate bytecode header
         if bytecode.len() < 8 || &bytecode[0..4] != b"FZB\x00" {

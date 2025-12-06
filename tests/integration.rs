@@ -9,7 +9,7 @@ use fusabi_host::{
     Engine, EngineConfig,
     EnginePool, PoolConfig,
     SandboxConfig,
-    Capabilities, Capability, Error, Limits, Result, Value,
+    Capabilities, Capability, Error, FromValue, Limits, Result, Value,
 };
 
 #[test]
@@ -37,9 +37,9 @@ fn test_engine_with_strict_config() {
 fn test_pool_concurrent_execution() {
     let pool = Arc::new(EnginePool::new(PoolConfig::new(4)).unwrap());
 
-    let handles: Vec<_> = (1..=8)
+    let handles: Vec<thread::JoinHandle<i64>> = (1..=8)
         .map(|i| {
-            let pool: Arc<EnginePool> = Arc::clone(&pool);
+            let pool = Arc::clone(&pool);
             thread::spawn(move || {
                 let result = pool.execute(&format!("{}", i * 10)).unwrap();
                 result.as_int().unwrap()
@@ -47,7 +47,7 @@ fn test_pool_concurrent_execution() {
         })
         .collect();
 
-    let results: Vec<i64> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+    let results: Vec<i64> = handles.into_iter().map(|h: thread::JoinHandle<i64>| h.join().unwrap()).collect();
 
     // All results should be multiples of 10
     for result in &results {
@@ -226,7 +226,7 @@ fn test_host_registry() {
 
 #[test]
 fn test_typed_host_functions() {
-    use fusabi_host::macros::typed_host_fn_2;
+    use fusabi_host::typed_host_fn_2;
     use fusabi_host::Sandbox;
 
     let add = typed_host_fn_2(|a: i64, b: i64| -> i64 { a + b });

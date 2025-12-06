@@ -3,8 +3,8 @@
 use std::path::Path;
 
 use fusabi_host::{
-    engine::{Engine, EngineConfig},
-    sandbox::{NetPolicy, PathPolicy, Sandbox, SandboxConfig},
+    Engine, EngineConfig,
+    NetPolicy, PathPolicy, Sandbox, SandboxConfig,
     Capabilities, Capability, Limits, Result,
 };
 

@@ -282,7 +282,8 @@ impl From<&str> for Value {
     }
 }
 
-
+// Note: Vec<Value> -> Value is handled by the generic impl<T: IntoValue> From<Vec<T>> for Value
+// in convert.rs, since Value implements IntoValue
 
 impl From<HashMap<String, Value>> for Value {
     fn from(m: HashMap<String, Value>) -> Self {
