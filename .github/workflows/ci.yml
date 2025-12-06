@@ -101,3 +101,65 @@ jobs:
         with:
           files: lcov.info
           fail_ci_if_error: false
+
+  doc-structure:
+    name: Documentation Structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check required documentation files
+        run: |
+          echo "Checking documentation structure..."
+
+          # Check for required top-level docs
+          for file in docs/STRUCTURE.md docs/RELEASE.md docs/compat.md; do
+            if [ ! -f "$file" ]; then
+              echo "ERROR: Missing required file: $file"
+              exit 1
+            fi
+          done
+
+          # Check for vNEXT versioned docs
+          for file in docs/versions/vNEXT/compat.md docs/versions/vNEXT/embedding.md docs/versions/vNEXT/features.md; do
+            if [ ! -f "$file" ]; then
+              echo "ERROR: Missing required file: $file"
+              exit 1
+            fi
+          done
+
+          echo "✅ All required documentation files present"
+
+      - name: Validate markdown files
+        run: |
+          echo "Checking for basic markdown issues..."
+
+          # Check all markdown files exist and are not empty
+          find docs -name "*.md" -type f | while read -r file; do
+            if [ ! -s "$file" ]; then
+              echo "ERROR: Empty file: $file"
+              exit 1
+            fi
+          done
+
+          echo "✅ All markdown files are non-empty"
+
+      - name: Check for required sections in compat.md
+        run: |
+          echo "Checking compat.md structure..."
+          COMPAT_FILE="docs/versions/vNEXT/compat.md"
+
+          required_sections=(
+            "Version Matrix"
+            "Fusabi LTS Alignment"
+            "API Stability"
+            "Platform Support"
+          )
+
+          for section in "${required_sections[@]}"; do
+            if ! grep -q "$section" "$COMPAT_FILE"; then
+              echo "ERROR: Missing required section in $COMPAT_FILE: $section"
+              exit 1
+            fi
+          done
+
+          echo "✅ compat.md has required sections"
