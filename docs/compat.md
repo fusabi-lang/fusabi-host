@@ -6,14 +6,16 @@ This document describes version compatibility between `fusabi-host` and the Fusa
 
 | fusabi-host | Fusabi Runtime | Status |
 |-------------|----------------|--------|
-| 0.1.x | 0.18.x - 0.19.x | Active |
+| 0.1.x | 0.18.x - 0.21.x | Active |
 
 ## Fusabi LTS Alignment
 
 The `fusabi-host` crate aligns with Fusabi LTS (Long Term Support) releases:
 
-- **0.18.x**: Current LTS release
-- **0.19.x**: Next LTS release (preview support)
+- **0.18.x**: LTS release
+- **0.19.x**: LTS release
+- **0.20.x**: LTS release
+- **0.21.x**: Current LTS release (verified compatible)
 
 ## API Stability
 

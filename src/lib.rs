@@ -72,7 +72,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MIN_FUSABI_VERSION: &str = "0.18.0";
 
 /// Maximum supported Fusabi version
-pub const MAX_FUSABI_VERSION: &str = "0.19.0";
+pub const MAX_FUSABI_VERSION: &str = "0.21.0";
 
 /// Check if a Fusabi version is compatible with this host runtime
 pub fn is_compatible_version(version: &str) -> bool {
@@ -89,8 +89,8 @@ pub fn is_compatible_version(version: &str) -> bool {
         return false;
     };
 
-    // Compatible with 0.18.x and 0.19.x
-    major == 0 && (minor == 18 || minor == 19)
+    // Compatible with 0.18.x through 0.21.x
+    major == 0 && (minor >= 18 && minor <= 21)
 }
 
 #[cfg(test)]
@@ -102,8 +102,10 @@ mod tests {
         assert!(is_compatible_version("0.18.0"));
         assert!(is_compatible_version("0.18.5"));
         assert!(is_compatible_version("0.19.0"));
+        assert!(is_compatible_version("0.20.0"));
+        assert!(is_compatible_version("0.21.0"));
         assert!(!is_compatible_version("0.17.0"));
-        assert!(!is_compatible_version("0.20.0"));
+        assert!(!is_compatible_version("0.22.0"));
         assert!(!is_compatible_version("1.0.0"));
         assert!(!is_compatible_version("invalid"));
     }
