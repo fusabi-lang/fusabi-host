@@ -316,7 +316,10 @@ mod tests {
         assert_eq!(Value::Bool(true).value_type(), ValueType::Bool);
         assert_eq!(Value::Int(42).value_type(), ValueType::Int);
         assert_eq!(Value::Float(3.14).value_type(), ValueType::Float);
-        assert_eq!(Value::String("hello".into()).value_type(), ValueType::String);
+        assert_eq!(
+            Value::String("hello".into()).value_type(),
+            ValueType::String
+        );
         assert_eq!(Value::List(vec![]).value_type(), ValueType::List);
         assert_eq!(Value::Map(HashMap::new()).value_type(), ValueType::Map);
     }

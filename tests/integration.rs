@@ -5,11 +5,8 @@ use std::thread;
 use std::time::Duration;
 
 use fusabi_host::{
-    compile_source, CompileOptions,
-    Engine, EngineConfig,
-    EnginePool, PoolConfig,
-    SandboxConfig,
-    Capabilities, Capability, Error, FromValue, Limits, Result, Value,
+    compile_source, Capabilities, Capability, CompileOptions, Engine, EngineConfig, EnginePool,
+    Error, FromValue, Limits, PoolConfig, Result, SandboxConfig, Value,
 };
 
 #[test]
@@ -47,7 +44,10 @@ fn test_pool_concurrent_execution() {
         })
         .collect();
 
-    let results: Vec<i64> = handles.into_iter().map(|h: thread::JoinHandle<i64>| h.join().unwrap()).collect();
+    let results: Vec<i64> = handles
+        .into_iter()
+        .map(|h: thread::JoinHandle<i64>| h.join().unwrap())
+        .collect();
 
     // All results should be multiples of 10
     for result in &results {
@@ -137,7 +137,10 @@ fn test_value_conversions() {
 
     // Test basic conversions
     assert_eq!(i64::from_value(Value::Int(42)).unwrap(), 42);
-    assert_eq!(String::from_value(Value::String("hello".into())).unwrap(), "hello");
+    assert_eq!(
+        String::from_value(Value::String("hello".into())).unwrap(),
+        "hello"
+    );
     assert_eq!(bool::from_value(Value::Bool(true)).unwrap(), true);
 
     // Test optional
@@ -232,12 +235,8 @@ fn test_typed_host_functions() {
     let add = typed_host_fn_2(|a: i64, b: i64| -> i64 { a + b });
 
     let sandbox = Sandbox::new(SandboxConfig::default()).unwrap();
-    let ctx = fusabi_host::ExecutionContext::new(
-        1,
-        Capabilities::none(),
-        Limits::default(),
-        sandbox,
-    );
+    let ctx =
+        fusabi_host::ExecutionContext::new(1, Capabilities::none(), Limits::default(), sandbox);
 
     let result = add(&[Value::Int(3), Value::Int(4)], &ctx).unwrap();
     assert_eq!(result, Value::Int(7));

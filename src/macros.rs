@@ -192,9 +192,7 @@ where
 }
 
 /// Typed host function with 3 arguments.
-pub fn typed_host_fn_3<F, A, B, C, R>(
-    f: F,
-) -> impl Fn(&[Value], &ExecutionContext) -> Result<Value>
+pub fn typed_host_fn_3<F, A, B, C, R>(f: F) -> impl Fn(&[Value], &ExecutionContext) -> Result<Value>
 where
     F: Fn(A, B, C) -> R,
     A: HostArg,
@@ -421,12 +419,7 @@ mod tests {
 
     #[test]
     fn test_rest_args() {
-        let args = vec![
-            Value::Int(1),
-            Value::Int(2),
-            Value::Int(3),
-            Value::Int(4),
-        ];
+        let args = vec![Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4)];
 
         let rest: Rest<i64> = Rest::extract(&args, 1).unwrap();
         assert_eq!(rest.0, vec![2, 3, 4]);
@@ -453,15 +446,13 @@ mod tests {
         use crate::Capabilities;
         use crate::Limits;
 
-        let div = typed_host_fn_2(
-            |a: i64, b: i64| -> std::result::Result<i64, &'static str> {
-                if b == 0 {
-                    Err("division by zero")
-                } else {
-                    Ok(a / b)
-                }
-            },
-        );
+        let div = typed_host_fn_2(|a: i64, b: i64| -> std::result::Result<i64, &'static str> {
+            if b == 0 {
+                Err("division by zero")
+            } else {
+                Ok(a / b)
+            }
+        });
 
         let sandbox = Sandbox::new(SandboxConfig::default()).unwrap();
         let ctx = ExecutionContext::new(1, Capabilities::none(), Limits::default(), sandbox);

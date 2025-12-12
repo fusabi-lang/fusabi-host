@@ -4,10 +4,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-use fusabi_host::{
-    EnginePool, PoolConfig,
-    Capabilities, Limits, Result,
-};
+use fusabi_host::{Capabilities, EnginePool, Limits, PoolConfig, Result};
 
 fn main() -> Result<()> {
     println!("=== Engine Pool Example ===\n");

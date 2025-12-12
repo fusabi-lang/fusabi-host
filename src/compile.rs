@@ -261,9 +261,7 @@ pub fn compile_file(path: &Path, options: &CompileOptions) -> Result<CompileResu
     let source = std::fs::read_to_string(path)?;
 
     // Compile with source name
-    let options = options
-        .clone()
-        .with_source_name(path.display().to_string());
+    let options = options.clone().with_source_name(path.display().to_string());
 
     compile_source(&source, &options)
 }

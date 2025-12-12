@@ -136,10 +136,7 @@ impl FromValue for i32 {
     fn from_value(value: Value) -> Result<Self, ValueConversionError> {
         match value {
             Value::Int(i) => i.try_into().map_err(|_| {
-                ValueConversionError::out_of_range(format!(
-                    "{} is out of range for i32",
-                    i
-                ))
+                ValueConversionError::out_of_range(format!("{} is out of range for i32", i))
             }),
             _ => Err(ValueConversionError::type_mismatch(
                 ValueType::Int,
@@ -153,10 +150,7 @@ impl FromValue for u64 {
     fn from_value(value: Value) -> Result<Self, ValueConversionError> {
         match value {
             Value::Int(i) => i.try_into().map_err(|_| {
-                ValueConversionError::out_of_range(format!(
-                    "{} is out of range for u64",
-                    i
-                ))
+                ValueConversionError::out_of_range(format!("{} is out of range for u64", i))
             }),
             _ => Err(ValueConversionError::type_mismatch(
                 ValueType::Int,
@@ -170,10 +164,7 @@ impl FromValue for u32 {
     fn from_value(value: Value) -> Result<Self, ValueConversionError> {
         match value {
             Value::Int(i) => i.try_into().map_err(|_| {
-                ValueConversionError::out_of_range(format!(
-                    "{} is out of range for u32",
-                    i
-                ))
+                ValueConversionError::out_of_range(format!("{} is out of range for u32", i))
             }),
             _ => Err(ValueConversionError::type_mismatch(
                 ValueType::Int,
@@ -187,10 +178,7 @@ impl FromValue for usize {
     fn from_value(value: Value) -> Result<Self, ValueConversionError> {
         match value {
             Value::Int(i) => i.try_into().map_err(|_| {
-                ValueConversionError::out_of_range(format!(
-                    "{} is out of range for usize",
-                    i
-                ))
+                ValueConversionError::out_of_range(format!("{} is out of range for usize", i))
             }),
             _ => Err(ValueConversionError::type_mismatch(
                 ValueType::Int,
@@ -331,15 +319,11 @@ mod serde_support {
             Value::Null => serde_json::Value::Null,
             Value::Bool(b) => serde_json::Value::Bool(*b),
             Value::Int(i) => serde_json::Value::Number((*i).into()),
-            Value::Float(f) => {
-                serde_json::Number::from_f64(*f)
-                    .map(serde_json::Value::Number)
-                    .unwrap_or(serde_json::Value::Null)
-            }
+            Value::Float(f) => serde_json::Number::from_f64(*f)
+                .map(serde_json::Value::Number)
+                .unwrap_or(serde_json::Value::Null),
             Value::String(s) => serde_json::Value::String(s.clone()),
-            Value::List(l) => {
-                serde_json::Value::Array(l.iter().map(value_to_json).collect())
-            }
+            Value::List(l) => serde_json::Value::Array(l.iter().map(value_to_json).collect()),
             Value::Map(m) => {
                 let obj: serde_json::Map<String, serde_json::Value> = m
                     .iter()
@@ -390,18 +374,15 @@ mod serde_support {
     }
 
     /// Deserialize a Value into a type implementing DeserializeOwned.
-    pub fn from_value_serde<T: DeserializeOwned>(
-        value: Value,
-    ) -> Result<T, ValueConversionError> {
+    pub fn from_value_serde<T: DeserializeOwned>(value: Value) -> Result<T, ValueConversionError> {
         let json = value_to_json(&value);
-        serde_json::from_value(json)
-            .map_err(|e| ValueConversionError::custom(e.to_string()))
+        serde_json::from_value(json).map_err(|e| ValueConversionError::custom(e.to_string()))
     }
 
     /// Serialize a type implementing Serialize into a Value.
     pub fn to_value_serde<T: Serialize>(value: &T) -> Result<Value, ValueConversionError> {
-        let json = serde_json::to_value(value)
-            .map_err(|e| ValueConversionError::custom(e.to_string()))?;
+        let json =
+            serde_json::to_value(value).map_err(|e| ValueConversionError::custom(e.to_string()))?;
         Ok(json_to_value(json))
     }
 
@@ -425,8 +406,8 @@ mod serde_support {
 
         /// Parse from JSON string.
         pub fn from_json_str(s: &str) -> Result<Self, ValueConversionError> {
-            let json: serde_json::Value = serde_json::from_str(s)
-                .map_err(|e| ValueConversionError::custom(e.to_string()))?;
+            let json: serde_json::Value =
+                serde_json::from_str(s).map_err(|e| ValueConversionError::custom(e.to_string()))?;
             Ok(json_to_value(json))
         }
     }
@@ -566,10 +547,7 @@ mod tests {
 
             // Map ordering may differ, so check individual fields
             let parsed_map = parsed.as_map().unwrap();
-            assert_eq!(
-                parsed_map.get("key"),
-                Some(&Value::String("value".into()))
-            );
+            assert_eq!(parsed_map.get("key"), Some(&Value::String("value".into())));
             assert_eq!(parsed_map.get("number"), Some(&Value::Int(42)));
         }
     }

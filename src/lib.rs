@@ -49,20 +49,20 @@ mod value;
 
 pub use capabilities::{Capabilities, Capability};
 pub use compile::{
-    compile_source, compile_file, validate_bytecode, extract_bytecode_metadata, CompileOptions,
+    compile_file, compile_source, extract_bytecode_metadata, validate_bytecode, CompileOptions,
     CompileResult, Metadata,
 };
 pub use convert::{FromValue, IntoValue, ValueConversionError};
 
 #[cfg(feature = "serde-support")]
 pub use convert::{from_value_serde, to_value_serde};
-pub use engine::{Engine, EngineConfig, ExecutionContext, HostRegistry, HostFn};
+pub use engine::{Engine, EngineConfig, ExecutionContext, HostFn, HostRegistry};
 pub use error::{Error, Result};
-pub use host_context::{HostContext, LogLevel, DefaultHostContext, NoopHostContext};
-pub use limits::{Limits, LimitViolation};
+pub use host_context::{DefaultHostContext, HostContext, LogLevel, NoopHostContext};
+pub use limits::{LimitViolation, Limits};
 pub use macros::typed_host_fn_2;
 pub use pool::{EnginePool, PoolConfig, PoolHandle, PoolStats};
-pub use sandbox::{Sandbox, SandboxConfig, PathPolicy, NetPolicy};
+pub use sandbox::{NetPolicy, PathPolicy, Sandbox, SandboxConfig};
 pub use value::{Value, ValueType};
 
 /// Crate version for compatibility checks
@@ -72,7 +72,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MIN_FUSABI_VERSION: &str = "0.18.0";
 
 /// Maximum supported Fusabi version
-pub const MAX_FUSABI_VERSION: &str = "0.19.0";
+pub const MAX_FUSABI_VERSION: &str = "0.21.0";
 
 /// Check if a Fusabi version is compatible with this host runtime
 pub fn is_compatible_version(version: &str) -> bool {
@@ -89,8 +89,8 @@ pub fn is_compatible_version(version: &str) -> bool {
         return false;
     };
 
-    // Compatible with 0.18.x and 0.19.x
-    major == 0 && (minor == 18 || minor == 19)
+    // Compatible with 0.18.x through 0.21.x
+    major == 0 && (minor >= 18 && minor <= 21)
 }
 
 #[cfg(test)]
@@ -102,8 +102,10 @@ mod tests {
         assert!(is_compatible_version("0.18.0"));
         assert!(is_compatible_version("0.18.5"));
         assert!(is_compatible_version("0.19.0"));
+        assert!(is_compatible_version("0.20.0"));
+        assert!(is_compatible_version("0.21.0"));
         assert!(!is_compatible_version("0.17.0"));
-        assert!(!is_compatible_version("0.20.0"));
+        assert!(!is_compatible_version("0.22.0"));
         assert!(!is_compatible_version("1.0.0"));
         assert!(!is_compatible_version("invalid"));
     }

@@ -154,7 +154,9 @@ This crate is aligned with Fusabi LTS releases:
 
 | fusabi-host | Fusabi |
 |-------------|--------|
-| 0.1.x | 0.18.x - 0.19.x |
+| 0.1.x | 0.18.x - 0.21.x |
+
+**Latest verified compatibility**: Fusabi 0.21.0
 
 See [docs/compat.md](docs/compat.md) for detailed compatibility information and [docs/versions/](docs/versions/) for version-specific documentation.
 

@@ -102,7 +102,7 @@ impl Default for Limits {
         Self {
             timeout: Some(Duration::from_secs(30)),
             memory_bytes: Some(64 * 1024 * 1024), // 64 MB
-            max_instructions: Some(10_000_000),    // 10M instructions
+            max_instructions: Some(10_000_000),   // 10M instructions
             max_stack_depth: Some(1000),
             max_output_bytes: Some(1024 * 1024), // 1 MB
             max_fs_ops: Some(100),
@@ -132,11 +132,11 @@ impl Limits {
         Self {
             timeout: Some(Duration::from_secs(5)),
             memory_bytes: Some(16 * 1024 * 1024), // 16 MB
-            max_instructions: Some(1_000_000),     // 1M instructions
+            max_instructions: Some(1_000_000),    // 1M instructions
             max_stack_depth: Some(100),
             max_output_bytes: Some(64 * 1024), // 64 KB
-            max_fs_ops: Some(0),                // No FS access
-            max_net_ops: Some(0),               // No network access
+            max_fs_ops: Some(0),               // No FS access
+            max_net_ops: Some(0),              // No network access
             max_concurrent_tasks: Some(4),
         }
     }
