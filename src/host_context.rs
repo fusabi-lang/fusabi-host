@@ -225,22 +225,15 @@ mod tests {
 
     impl HostContext for TestContext {
         fn log(&self, level: LogLevel, message: &str) {
-            self.logs
-                .lock()
-                .unwrap()
-                .push((level, message.to_string()));
+            self.logs.lock().unwrap().push((level, message.to_string()));
         }
 
         fn record_metric(&self, name: &str, value: f64, _tags: &[(&str, &str)]) {
-            self.metrics
-                .lock()
-                .unwrap()
-                .push((name.to_string(), value));
+            self.metrics.lock().unwrap().push((name.to_string(), value));
         }
 
         fn should_cancel(&self) -> bool {
-            self.cancel_flag
-                .load(std::sync::atomic::Ordering::Relaxed)
+            self.cancel_flag.load(std::sync::atomic::Ordering::Relaxed)
         }
     }
 

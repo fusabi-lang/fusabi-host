@@ -31,15 +31,15 @@ impl PathPolicy {
             PathPolicy::AllowList(allowed) => {
                 // Check if path or any of its parents are in the allowlist
                 let canonical = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
-                allowed.iter().any(|allowed_path| {
-                    canonical.starts_with(allowed_path)
-                })
+                allowed
+                    .iter()
+                    .any(|allowed_path| canonical.starts_with(allowed_path))
             }
             PathPolicy::DenyList(denied) => {
                 let canonical = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
-                !denied.iter().any(|denied_path| {
-                    canonical.starts_with(denied_path)
-                })
+                !denied
+                    .iter()
+                    .any(|denied_path| canonical.starts_with(denied_path))
             }
         }
     }
@@ -101,17 +101,15 @@ impl NetPolicy {
                     }
                 })
             }
-            NetPolicy::DenyList(denied) => {
-                !denied.iter().any(|d| {
-                    let d_lower = d.to_lowercase();
-                    if d_lower.starts_with("*.") {
-                        let suffix = &d_lower[1..];
-                        host_lower.ends_with(suffix) || host_lower == &d_lower[2..]
-                    } else {
-                        host_lower == d_lower
-                    }
-                })
-            }
+            NetPolicy::DenyList(denied) => !denied.iter().any(|d| {
+                let d_lower = d.to_lowercase();
+                if d_lower.starts_with("*.") {
+                    let suffix = &d_lower[1..];
+                    host_lower.ends_with(suffix) || host_lower == &d_lower[2..]
+                } else {
+                    host_lower == d_lower
+                }
+            }),
         }
     }
 
@@ -268,10 +266,7 @@ impl Sandbox {
     pub fn new(config: SandboxConfig) -> crate::Result<Self> {
         let temp_dir = if config.isolate_temp {
             // Create an isolated temp directory
-            let dir = std::env::temp_dir().join(format!(
-                "fusabi-sandbox-{}",
-                std::process::id()
-            ));
+            let dir = std::env::temp_dir().join(format!("fusabi-sandbox-{}", std::process::id()));
             std::fs::create_dir_all(&dir)?;
             Some(dir)
         } else {

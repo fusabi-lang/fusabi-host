@@ -3,9 +3,8 @@
 use std::path::Path;
 
 use fusabi_host::{
-    Engine, EngineConfig,
-    NetPolicy, PathPolicy, Sandbox, SandboxConfig,
-    Capabilities, Capability, Limits, Result,
+    Capabilities, Capability, Engine, EngineConfig, Limits, NetPolicy, PathPolicy, Result, Sandbox,
+    SandboxConfig,
 };
 
 fn main() -> Result<()> {
@@ -106,8 +105,14 @@ fn demonstrate_sandbox_policies() -> Result<()> {
     let allowlist = PathPolicy::allow(["/tmp", "/home/user/data"]);
     let denylist = PathPolicy::deny(["/etc", "/root"]);
 
-    println!("  DenyAll allows /tmp: {}", deny_all.is_allowed(Path::new("/tmp")));
-    println!("  AllowAll allows /etc: {}", allow_all.is_allowed(Path::new("/etc")));
+    println!(
+        "  DenyAll allows /tmp: {}",
+        deny_all.is_allowed(Path::new("/tmp"))
+    );
+    println!(
+        "  AllowAll allows /etc: {}",
+        allow_all.is_allowed(Path::new("/etc"))
+    );
 
     // Network policies
     println!("\nNetwork Policies:");
@@ -117,19 +122,37 @@ fn demonstrate_sandbox_policies() -> Result<()> {
     let net_allowlist = NetPolicy::allow(["api.example.com", "*.trusted.org"]);
     let net_denylist = NetPolicy::deny(["evil.com", "*.malware.net"]);
 
-    println!("  DenyAll allows example.com: {}", net_deny.is_allowed("example.com"));
-    println!("  AllowAll allows anything: {}", net_allow.is_allowed("anything.com"));
+    println!(
+        "  DenyAll allows example.com: {}",
+        net_deny.is_allowed("example.com")
+    );
+    println!(
+        "  AllowAll allows anything: {}",
+        net_allow.is_allowed("anything.com")
+    );
 
     println!("\n  Allowlist tests:");
-    println!("    api.example.com: {}", net_allowlist.is_allowed("api.example.com"));
-    println!("    sub.trusted.org: {}", net_allowlist.is_allowed("sub.trusted.org"));
-    println!("    trusted.org: {}", net_allowlist.is_allowed("trusted.org"));
+    println!(
+        "    api.example.com: {}",
+        net_allowlist.is_allowed("api.example.com")
+    );
+    println!(
+        "    sub.trusted.org: {}",
+        net_allowlist.is_allowed("sub.trusted.org")
+    );
+    println!(
+        "    trusted.org: {}",
+        net_allowlist.is_allowed("trusted.org")
+    );
     println!("    other.com: {}", net_allowlist.is_allowed("other.com"));
 
     println!("\n  Denylist tests:");
     println!("    good.com: {}", net_denylist.is_allowed("good.com"));
     println!("    evil.com: {}", net_denylist.is_allowed("evil.com"));
-    println!("    download.malware.net: {}", net_denylist.is_allowed("download.malware.net"));
+    println!(
+        "    download.malware.net: {}",
+        net_denylist.is_allowed("download.malware.net")
+    );
 
     Ok(())
 }
@@ -145,13 +168,34 @@ fn demonstrate_secure_config() -> Result<()> {
         .with_temp_isolation();
 
     println!("Sandbox configuration:");
-    println!("  Can read /app/data: {}", sandbox_config.can_read(Path::new("/app/data")));
-    println!("  Can read /etc/passwd: {}", sandbox_config.can_read(Path::new("/etc/passwd")));
-    println!("  Can write /app/data: {}", sandbox_config.can_write(Path::new("/app/data")));
-    println!("  Can connect to api.myapp.com: {}", sandbox_config.can_connect("api.myapp.com"));
-    println!("  Can connect to evil.com: {}", sandbox_config.can_connect("evil.com"));
-    println!("  Can access APP_ENV: {}", sandbox_config.can_access_env("APP_ENV"));
-    println!("  Can access SECRET_KEY: {}", sandbox_config.can_access_env("SECRET_KEY"));
+    println!(
+        "  Can read /app/data: {}",
+        sandbox_config.can_read(Path::new("/app/data"))
+    );
+    println!(
+        "  Can read /etc/passwd: {}",
+        sandbox_config.can_read(Path::new("/etc/passwd"))
+    );
+    println!(
+        "  Can write /app/data: {}",
+        sandbox_config.can_write(Path::new("/app/data"))
+    );
+    println!(
+        "  Can connect to api.myapp.com: {}",
+        sandbox_config.can_connect("api.myapp.com")
+    );
+    println!(
+        "  Can connect to evil.com: {}",
+        sandbox_config.can_connect("evil.com")
+    );
+    println!(
+        "  Can access APP_ENV: {}",
+        sandbox_config.can_access_env("APP_ENV")
+    );
+    println!(
+        "  Can access SECRET_KEY: {}",
+        sandbox_config.can_access_env("SECRET_KEY")
+    );
 
     // Create sandbox instance
     let sandbox = Sandbox::new(sandbox_config)?;
@@ -206,8 +250,14 @@ fn demonstrate_secure_config() -> Result<()> {
     println!("Engine created with ID: {}", engine.id());
     println!("Engine config:");
     println!("  Timeout: {:?}", engine.config().limits.timeout);
-    println!("  Memory limit: {:?} bytes", engine.config().limits.memory_bytes);
-    println!("  Max instructions: {:?}", engine.config().limits.max_instructions);
+    println!(
+        "  Memory limit: {:?} bytes",
+        engine.config().limits.memory_bytes
+    );
+    println!(
+        "  Max instructions: {:?}",
+        engine.config().limits.max_instructions
+    );
     println!("  Debug mode: {}", engine.config().debug);
 
     // Test execution
@@ -219,7 +269,10 @@ fn demonstrate_secure_config() -> Result<()> {
     println!("\nContext capability checks:");
     println!("  TimeRead: {}", ctx.has_capability(Capability::TimeRead));
     println!("  FsWrite: {}", ctx.has_capability(Capability::FsWrite));
-    println!("  ProcessExec: {}", ctx.has_capability(Capability::ProcessExec));
+    println!(
+        "  ProcessExec: {}",
+        ctx.has_capability(Capability::ProcessExec)
+    );
 
     Ok(())
 }

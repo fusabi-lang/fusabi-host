@@ -167,17 +167,19 @@ pub struct PoolHandle {
 impl PoolHandle {
     /// Execute source code with the pooled engine.
     pub fn execute(&self, source: &str) -> Result<Value> {
-        let engine = self.engine.as_ref().ok_or(Error::Internal(
-            "pool handle has no engine".into(),
-        ))?;
+        let engine = self
+            .engine
+            .as_ref()
+            .ok_or(Error::Internal("pool handle has no engine".into()))?;
         engine.engine.execute(source)
     }
 
     /// Execute bytecode with the pooled engine.
     pub fn execute_bytecode(&self, bytecode: &[u8]) -> Result<Value> {
-        let engine = self.engine.as_ref().ok_or(Error::Internal(
-            "pool handle has no engine".into(),
-        ))?;
+        let engine = self
+            .engine
+            .as_ref()
+            .ok_or(Error::Internal("pool handle has no engine".into()))?;
         engine.engine.execute_bytecode(bytecode)
     }
 
@@ -446,8 +448,8 @@ impl std::fmt::Debug for EnginePool {
 #[cfg(feature = "async-runtime-tokio")]
 mod async_support {
     use super::*;
-    use tokio::sync::Semaphore;
     use std::sync::Arc;
+    use tokio::sync::Semaphore;
 
     /// Async wrapper for the engine pool.
     pub struct AsyncEnginePool {

@@ -1,9 +1,8 @@
 //! Basic example of using fusabi-host to execute scripts.
 
 use fusabi_host::{
-    compile_source, CompileOptions,
-    Engine, EngineConfig, HostRegistry,
-    Capabilities, Limits, Result, Value,
+    compile_source, Capabilities, CompileOptions, Engine, EngineConfig, HostRegistry, Limits,
+    Result, Value,
 };
 
 fn main() -> Result<()> {
@@ -49,14 +48,28 @@ fn main() -> Result<()> {
     "#;
 
     let compile_result = compile_source(source, &CompileOptions::development())?;
-    println!("Compiled {} bytes of source to {} bytes of bytecode",
-        compile_result.stats.source_bytes,
-        compile_result.stats.bytecode_bytes);
+    println!(
+        "Compiled {} bytes of source to {} bytes of bytecode",
+        compile_result.stats.source_bytes, compile_result.stats.bytecode_bytes
+    );
 
-    println!("Language version: {}", compile_result.metadata.language_version);
-    println!("Required capabilities: {:?}", compile_result.metadata.required_capabilities);
-    println!("Exports: {:?}", compile_result.metadata.exports.iter()
-        .map(|e| &e.name).collect::<Vec<_>>());
+    println!(
+        "Language version: {}",
+        compile_result.metadata.language_version
+    );
+    println!(
+        "Required capabilities: {:?}",
+        compile_result.metadata.required_capabilities
+    );
+    println!(
+        "Exports: {:?}",
+        compile_result
+            .metadata
+            .exports
+            .iter()
+            .map(|e| &e.name)
+            .collect::<Vec<_>>()
+    );
 
     if !compile_result.warnings.is_empty() {
         println!("Warnings:");

@@ -3,8 +3,8 @@
 use std::fmt;
 use thiserror::Error;
 
-use crate::limits::LimitViolation;
 use crate::convert::ValueConversionError;
+use crate::limits::LimitViolation;
 
 /// Result type alias using [`Error`].
 pub type Result<T> = std::result::Result<T, Error>;

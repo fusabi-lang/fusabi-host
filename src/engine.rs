@@ -560,12 +560,7 @@ mod tests {
     #[test]
     fn test_execution_context_custom_data() {
         let sandbox = Sandbox::new(SandboxConfig::default()).unwrap();
-        let ctx = ExecutionContext::new(
-            1,
-            Capabilities::none(),
-            Limits::default(),
-            sandbox,
-        );
+        let ctx = ExecutionContext::new(1, Capabilities::none(), Limits::default(), sandbox);
 
         ctx.set_custom("key", Value::Int(42));
         assert_eq!(ctx.get_custom("key"), Some(Value::Int(42)));
@@ -581,6 +576,9 @@ mod tests {
             .with_metadata("name", "test-engine");
 
         assert!(config.debug);
-        assert_eq!(config.metadata.get("name"), Some(&"test-engine".to_string()));
+        assert_eq!(
+            config.metadata.get("name"),
+            Some(&"test-engine".to_string())
+        );
     }
 }
