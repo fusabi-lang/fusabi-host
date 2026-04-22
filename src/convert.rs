@@ -311,7 +311,6 @@ impl<T: IntoValue> From<Vec<T>> for Value {
 mod serde_support {
     use super::*;
     use serde::{de::DeserializeOwned, Serialize};
-    use serde_json;
 
     /// Convert a Value to a JSON value.
     pub fn value_to_json(value: &Value) -> serde_json::Value {
@@ -458,12 +457,13 @@ macro_rules! extract_field_opt {
 }
 
 #[cfg(test)]
+#[allow(clippy::approx_constant)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_from_value_primitives() {
-        assert_eq!(bool::from_value(Value::Bool(true)).unwrap(), true);
+        assert!(bool::from_value(Value::Bool(true)).unwrap());
         assert_eq!(i64::from_value(Value::Int(42)).unwrap(), 42);
         assert_eq!(f64::from_value(Value::Float(3.14)).unwrap(), 3.14);
         assert_eq!(

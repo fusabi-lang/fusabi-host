@@ -66,7 +66,7 @@ fn demonstrate_capabilities() -> Result<()> {
 
     match custom.require(Capability::ProcessExec) {
         Ok(()) => println!("  Require ProcessExec: granted"),
-        Err(e) => println!("  Require ProcessExec: denied"),
+        Err(_e) => println!("  Require ProcessExec: denied"),
     }
 
     // Parse from names
@@ -102,8 +102,8 @@ fn demonstrate_sandbox_policies() -> Result<()> {
 
     let deny_all = PathPolicy::DenyAll;
     let allow_all = PathPolicy::AllowAll;
-    let allowlist = PathPolicy::allow(["/tmp", "/home/user/data"]);
-    let denylist = PathPolicy::deny(["/etc", "/root"]);
+    let _allowlist = PathPolicy::allow(["/tmp", "/home/user/data"]);
+    let _denylist = PathPolicy::deny(["/etc", "/root"]);
 
     println!(
         "  DenyAll allows /tmp: {}",
@@ -213,7 +213,7 @@ fn demonstrate_secure_config() -> Result<()> {
 
     match sandbox.check_read(Path::new("/etc/passwd")) {
         Ok(()) => println!("  Read /etc/passwd: allowed"),
-        Err(e) => println!("  Read /etc/passwd: denied"),
+        Err(_e) => println!("  Read /etc/passwd: denied"),
     }
 
     match sandbox.check_connect("api.myapp.com") {
@@ -223,7 +223,7 @@ fn demonstrate_secure_config() -> Result<()> {
 
     match sandbox.check_connect("hacker.com") {
         Ok(()) => println!("  Connect hacker.com: allowed"),
-        Err(e) => println!("  Connect hacker.com: denied"),
+        Err(_e) => println!("  Connect hacker.com: denied"),
     }
 
     // Full engine configuration

@@ -90,7 +90,7 @@ pub fn is_compatible_version(version: &str) -> bool {
     };
 
     // Compatible with 0.18.x through 0.21.x
-    major == 0 && (minor >= 18 && minor <= 21)
+    major == 0 && (18..=21).contains(&minor)
 }
 
 #[cfg(test)]

@@ -1,11 +1,12 @@
 //! Engine pool for concurrent Fusabi execution.
 
+// TEMP: AsyncEnginePool scaffolding pending wire-up in M1 harness-skills; see ISSUE-REF. Remove these #[allow(dead_code)] once used.
+
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use crossbeam_channel::{bounded, Receiver, Sender, TryRecvError};
-use parking_lot::Mutex;
 
 use crate::capabilities::Capabilities;
 use crate::engine::{Engine, EngineConfig};
@@ -128,6 +129,7 @@ impl PoolStats {
 /// Internal wrapper for pooled engines.
 struct PooledEngine {
     engine: Engine,
+    #[allow(dead_code)]
     created_at: Instant,
     last_used: Instant,
     use_count: u64,
@@ -149,6 +151,7 @@ impl PooledEngine {
         self.use_count += 1;
     }
 
+    #[allow(dead_code)]
     fn idle_time(&self) -> Duration {
         self.last_used.elapsed()
     }
@@ -301,8 +304,8 @@ impl EnginePool {
                 // Try lazy creation if we haven't reached capacity
                 if self.config.lazy_init {
                     let created = self.created.load(Ordering::Relaxed);
-                    if created < self.config.size {
-                        if self
+                    if created < self.config.size
+                        && self
                             .created
                             .compare_exchange(
                                 created,
@@ -311,15 +314,14 @@ impl EnginePool {
                                 Ordering::Relaxed,
                             )
                             .is_ok()
-                        {
-                            let engine = Engine::new(self.config.engine_config.clone())?;
-                            return Ok(PoolHandle {
-                                engine: Some(PooledEngine::new(engine)),
-                                return_tx: self.engine_tx.clone(),
-                                stats: self.stats.clone(),
-                                start_time: Instant::now(),
-                            });
-                        }
+                    {
+                        let engine = Engine::new(self.config.engine_config.clone())?;
+                        return Ok(PoolHandle {
+                            engine: Some(PooledEngine::new(engine)),
+                            return_tx: self.engine_tx.clone(),
+                            stats: self.stats.clone(),
+                            start_time: Instant::now(),
+                        });
                     }
                 }
 
@@ -348,8 +350,8 @@ impl EnginePool {
                 // Try lazy creation
                 if self.config.lazy_init {
                     let created = self.created.load(Ordering::Relaxed);
-                    if created < self.config.size {
-                        if self
+                    if created < self.config.size
+                        && self
                             .created
                             .compare_exchange(
                                 created,
@@ -358,15 +360,14 @@ impl EnginePool {
                                 Ordering::Relaxed,
                             )
                             .is_ok()
-                        {
-                            let engine = Engine::new(self.config.engine_config.clone())?;
-                            return Ok(PoolHandle {
-                                engine: Some(PooledEngine::new(engine)),
-                                return_tx: self.engine_tx.clone(),
-                                stats: self.stats.clone(),
-                                start_time: Instant::now(),
-                            });
-                        }
+                    {
+                        let engine = Engine::new(self.config.engine_config.clone())?;
+                        return Ok(PoolHandle {
+                            engine: Some(PooledEngine::new(engine)),
+                            return_tx: self.engine_tx.clone(),
+                            stats: self.stats.clone(),
+                            start_time: Instant::now(),
+                        });
                     }
                 }
                 Err(Error::PoolExhausted {
@@ -418,7 +419,7 @@ impl EnginePool {
 
     /// Check if the pool is healthy.
     pub fn is_healthy(&self) -> bool {
-        !self.shutdown.load(Ordering::Relaxed) && self.engine_rx.len() > 0
+        !self.shutdown.load(Ordering::Relaxed) && !self.engine_rx.is_empty()
     }
 
     /// Shut down the pool, preventing new acquisitions.
@@ -452,11 +453,13 @@ mod async_support {
     use tokio::sync::Semaphore;
 
     /// Async wrapper for the engine pool.
+    #[allow(dead_code)]
     pub struct AsyncEnginePool {
         inner: Arc<EnginePool>,
         semaphore: Arc<Semaphore>,
     }
 
+    #[allow(dead_code)]
     impl AsyncEnginePool {
         /// Create a new async pool wrapper.
         pub fn new(pool: EnginePool) -> Self {
@@ -501,13 +504,11 @@ mod async_support {
     }
 }
 
-#[cfg(feature = "async-runtime-tokio")]
-pub use async_support::AsyncEnginePool;
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    #[allow(dead_code)]
     fn num_cpus_get() -> usize {
         4 // Mock for testing
     }

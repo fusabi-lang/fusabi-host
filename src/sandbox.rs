@@ -4,9 +4,10 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 /// Policy for filesystem path access.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub enum PathPolicy {
     /// Deny all filesystem access.
+    #[default]
     DenyAll,
     /// Allow only specific paths.
     AllowList(HashSet<PathBuf>),
@@ -14,12 +15,6 @@ pub enum PathPolicy {
     DenyList(HashSet<PathBuf>),
     /// Allow all filesystem access.
     AllowAll,
-}
-
-impl Default for PathPolicy {
-    fn default() -> Self {
-        PathPolicy::DenyAll
-    }
 }
 
 impl PathPolicy {
@@ -64,9 +59,10 @@ impl PathPolicy {
 }
 
 /// Policy for network access.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub enum NetPolicy {
     /// Deny all network access.
+    #[default]
     DenyAll,
     /// Allow only specific hosts/domains.
     AllowList(HashSet<String>),
@@ -74,12 +70,6 @@ pub enum NetPolicy {
     DenyList(HashSet<String>),
     /// Allow all network access.
     AllowAll,
-}
-
-impl Default for NetPolicy {
-    fn default() -> Self {
-        NetPolicy::DenyAll
-    }
 }
 
 impl NetPolicy {
@@ -93,9 +83,9 @@ impl NetPolicy {
                 allowed.iter().any(|a| {
                     let a_lower = a.to_lowercase();
                     // Support wildcard subdomains like *.example.com
-                    if a_lower.starts_with("*.") {
+                    if let Some(bare) = a_lower.strip_prefix("*.") {
                         let suffix = &a_lower[1..];
-                        host_lower.ends_with(suffix) || host_lower == &a_lower[2..]
+                        host_lower.ends_with(suffix) || host_lower == bare
                     } else {
                         host_lower == a_lower
                     }
@@ -103,9 +93,9 @@ impl NetPolicy {
             }
             NetPolicy::DenyList(denied) => !denied.iter().any(|d| {
                 let d_lower = d.to_lowercase();
-                if d_lower.starts_with("*.") {
+                if let Some(bare) = d_lower.strip_prefix("*.") {
                     let suffix = &d_lower[1..];
-                    host_lower.ends_with(suffix) || host_lower == &d_lower[2..]
+                    host_lower.ends_with(suffix) || host_lower == bare
                 } else {
                     host_lower == d_lower
                 }

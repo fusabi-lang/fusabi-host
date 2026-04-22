@@ -3,7 +3,7 @@
 //! This module provides macros and helpers for ergonomically registering
 //! host functions with automatic value conversion and error handling.
 
-use crate::convert::{FromValue, IntoValue, ValueConversionError};
+use crate::convert::{FromValue, IntoValue};
 use crate::engine::ExecutionContext;
 use crate::error::{Error, Result};
 use crate::value::Value;
@@ -115,7 +115,7 @@ impl<T: FromValue> HostArg for Rest<T> {
 
 /// Trait for host function return types.
 pub trait HostReturn {
-    /// Convert this return value to a Result<Value>.
+    /// Convert this return value to a `Result<Value>`.
     fn into_result(self) -> Result<Value>;
 }
 
@@ -381,6 +381,7 @@ impl Default for HostFnBuilder {
 }
 
 #[cfg(test)]
+#[allow(clippy::approx_constant)]
 mod tests {
     use super::*;
 
