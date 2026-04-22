@@ -1,12 +1,14 @@
 //! Integration tests for fusabi-host.
 
+#![allow(clippy::approx_constant)]
+
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
 use fusabi_host::{
     compile_source, Capabilities, Capability, CompileOptions, Engine, EngineConfig, EnginePool,
-    Error, FromValue, Limits, PoolConfig, Result, SandboxConfig, Value,
+    Error, Limits, PoolConfig, SandboxConfig, Value,
 };
 
 #[test]
@@ -141,7 +143,7 @@ fn test_value_conversions() {
         String::from_value(Value::String("hello".into())).unwrap(),
         "hello"
     );
-    assert_eq!(bool::from_value(Value::Bool(true)).unwrap(), true);
+    assert!(bool::from_value(Value::Bool(true)).unwrap());
 
     // Test optional
     let opt: Option<i64> = Option::from_value(Value::Null).unwrap();

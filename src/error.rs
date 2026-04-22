@@ -1,12 +1,11 @@
 //! Error types for fusabi-host operations.
 
-use std::fmt;
 use thiserror::Error;
 
 use crate::convert::ValueConversionError;
 use crate::limits::LimitViolation;
 
-/// Result type alias using [`Error`].
+/// Result type alias using [`enum@Error`].
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Errors that can occur during Fusabi host operations.

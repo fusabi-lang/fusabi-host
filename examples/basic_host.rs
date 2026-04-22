@@ -89,7 +89,7 @@ fn main() -> Result<()> {
 fn register_host_functions(registry: &mut HostRegistry) {
     // Register a simple add function
     registry.register("add", |args, _ctx| {
-        let a = args.get(0).and_then(|v| v.as_int()).unwrap_or(0);
+        let a = args.first().and_then(|v| v.as_int()).unwrap_or(0);
         let b = args.get(1).and_then(|v| v.as_int()).unwrap_or(0);
         Ok(Value::Int(a + b))
     });
@@ -112,12 +112,12 @@ fn register_host_functions(registry: &mut HostRegistry) {
     });
 
     registry.register_module("math", "sqrt", |args, _ctx| {
-        let n = args.get(0).and_then(|v| v.as_float()).unwrap_or(0.0);
+        let n = args.first().and_then(|v| v.as_float()).unwrap_or(0.0);
         Ok(Value::Float(n.sqrt()))
     });
 
     registry.register_module("math", "pow", |args, _ctx| {
-        let base = args.get(0).and_then(|v| v.as_float()).unwrap_or(0.0);
+        let base = args.first().and_then(|v| v.as_float()).unwrap_or(0.0);
         let exp = args.get(1).and_then(|v| v.as_float()).unwrap_or(1.0);
         Ok(Value::Float(base.powf(exp)))
     });

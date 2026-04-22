@@ -261,12 +261,14 @@ pub struct LimitTracker {
     start_time: std::time::Instant,
     instructions_executed: u64,
     memory_used: usize,
+    #[allow(dead_code)]
     current_stack_depth: usize,
     output_bytes: usize,
     fs_ops: usize,
     net_ops: usize,
 }
 
+#[allow(dead_code)]
 impl LimitTracker {
     /// Create a new tracker with the given limits.
     pub fn new(limits: Limits) -> Self {

@@ -308,6 +308,7 @@ pub struct Engine {
     registry: HostRegistry,
     context: ExecutionContext,
     /// Bytecode cache for compiled scripts.
+    #[allow(dead_code)]
     bytecode_cache: Mutex<HashMap<String, Vec<u8>>>,
 }
 
@@ -466,6 +467,7 @@ impl std::fmt::Debug for Engine {
 }
 
 #[cfg(test)]
+#[allow(clippy::approx_constant)]
 mod tests {
     use super::*;
 
@@ -535,7 +537,7 @@ mod tests {
         });
 
         registry.register_module("math", "add", |args, _ctx| {
-            let a = args.get(0).and_then(|v| v.as_int()).unwrap_or(0);
+            let a = args.first().and_then(|v| v.as_int()).unwrap_or(0);
             let b = args.get(1).and_then(|v| v.as_int()).unwrap_or(0);
             Ok(Value::Int(a + b))
         });

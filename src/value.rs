@@ -49,9 +49,10 @@ impl fmt::Display for ValueType {
 ///
 /// This is a representation of values that can be passed between
 /// the host and Fusabi scripts.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub enum Value {
     /// Null/nil value.
+    #[default]
     Null,
     /// Boolean value.
     Bool(bool),
@@ -192,12 +193,6 @@ impl Value {
     }
 }
 
-impl Default for Value {
-    fn default() -> Self {
-        Value::Null
-    }
-}
-
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -307,6 +302,7 @@ impl<T: Into<Value>> From<Option<T>> for Value {
 }
 
 #[cfg(test)]
+#[allow(clippy::approx_constant)]
 mod tests {
     use super::*;
 
