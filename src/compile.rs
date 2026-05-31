@@ -217,7 +217,7 @@ pub fn compile_source(source: &str, options: &CompileOptions) -> Result<CompileR
         return Err(Error::compilation("empty source"));
     }
 
-    // Simulate compilation - in real implementation would call fusabi_frontend
+    // Compile source -> bytecode via the real fusabi-frontend compiler.
     let bytecode = generate_bytecode(source, options)?;
     let metadata = extract_metadata(source, options);
     let warnings = check_warnings(source);
@@ -276,24 +276,20 @@ pub fn compile_file(path: &Path, options: &CompileOptions) -> Result<CompileResu
 ///
 /// Metadata if valid, error if invalid.
 pub fn validate_bytecode(bytecode: &[u8]) -> Result<Metadata> {
-    // Check minimum size
-    if bytecode.len() < 16 {
+    // Check minimum size (FZB magic + version + at least some chunk payload).
+    if bytecode.len() < 5 {
         return Err(Error::invalid_bytecode("bytecode too short"));
     }
 
-    // Check magic number
-    if &bytecode[0..4] != b"FZB\x00" {
+    // Check magic number. The Fusabi VM bytecode container uses the magic
+    // `FZB\x01` (4 bytes) emitted by `fusabi_vm::serialize_chunk`.
+    if &bytecode[0..4] != fusabi_vm::FZB_MAGIC {
         return Err(Error::invalid_bytecode("invalid magic number"));
     }
 
-    // Check version
-    let version = bytecode[4];
-    if version > 1 {
-        return Err(Error::invalid_bytecode(format!(
-            "unsupported bytecode version: {}",
-            version
-        )));
-    }
+    // Fully validate by deserializing the chunk; this also rejects unsupported
+    // versions and corrupted payloads.
+    fusabi_vm::deserialize_chunk(bytecode).map_err(|e| Error::invalid_bytecode(e.to_string()))?;
 
     // Extract metadata from bytecode
     Ok(Metadata {
@@ -315,41 +311,15 @@ pub fn extract_bytecode_metadata(bytecode: &[u8]) -> Result<Metadata> {
 
 // Internal helper functions
 
-fn generate_bytecode(source: &str, options: &CompileOptions) -> Result<Vec<u8>> {
-    // Generate fake bytecode for simulation
-    // Real implementation would use fusabi_frontend
+fn generate_bytecode(source: &str, _options: &CompileOptions) -> Result<Vec<u8>> {
+    // Compile the source through the real Fusabi frontend (lexer -> parser ->
+    // bytecode compiler), producing a `Chunk`, then serialize it to the FZB
+    // bytecode container so it can round-trip through `Engine::execute_bytecode`.
+    let chunk = fusabi_frontend::compile_program_from_source(source)
+        .map_err(|e| Error::compilation(e.to_string()))?;
 
-    let mut bytecode = Vec::new();
-
-    // Magic number: "FZB\0"
-    bytecode.extend_from_slice(b"FZB\x00");
-
-    // Version byte
-    bytecode.push(1);
-
-    // Flags byte
-    let mut flags = 0u8;
-    if options.debug_info {
-        flags |= 0x01;
-    }
-    if options.strip {
-        flags |= 0x02;
-    }
-    flags |= (options.opt_level & 0x03) << 4;
-    bytecode.push(flags);
-
-    // Reserved bytes
-    bytecode.extend_from_slice(&[0u8; 10]);
-
-    // Source hash (simplified)
-    let hash = simple_hash(source);
-    bytecode.extend_from_slice(&hash.to_le_bytes());
-
-    // Placeholder for actual bytecode
-    // In real impl, this would be the compiled instructions
-    bytecode.extend_from_slice(source.as_bytes());
-
-    Ok(bytecode)
+    fusabi_vm::serialize_chunk(&chunk)
+        .map_err(|e| Error::compilation(format!("bytecode serialization failed: {}", e)))
 }
 
 fn extract_metadata(source: &str, options: &CompileOptions) -> Metadata {
@@ -369,9 +339,14 @@ fn extract_metadata(source: &str, options: &CompileOptions) -> Metadata {
         custom: HashMap::new(),
     };
 
-    // Parse source for metadata hints (simplified)
+    // Parse source for metadata hints (simplified).
+    //
+    // Directives may appear either bare or behind a `//` line-comment prefix so
+    // that real, compilable Fusabi source can still carry host metadata hints
+    // (e.g. `// @require fs:read`) without being rejected by the compiler.
     for line in source.lines() {
         let line = line.trim();
+        let line = line.strip_prefix("//").map(str::trim).unwrap_or(line);
 
         // Check for capability declarations
         if line.starts_with("@require ") {
@@ -443,16 +418,6 @@ fn check_warnings(source: &str) -> Vec<CompileWarning> {
     warnings
 }
 
-fn simple_hash(s: &str) -> u64 {
-    // Simple FNV-1a hash for simulation
-    let mut hash: u64 = 0xcbf29ce484222325;
-    for byte in s.bytes() {
-        hash ^= byte as u64;
-        hash = hash.wrapping_mul(0x100000001b3);
-    }
-    hash
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -462,7 +427,8 @@ mod tests {
         let result = compile_source("42", &CompileOptions::default()).unwrap();
 
         assert!(!result.bytecode.is_empty());
-        assert!(result.bytecode.starts_with(b"FZB\x00"));
+        // Real bytecode produced by the Fusabi VM container uses the FZB\x01 magic.
+        assert!(result.bytecode.starts_with(fusabi_vm::FZB_MAGIC));
         assert_eq!(result.stats.source_bytes, 2);
     }
 
@@ -515,6 +481,9 @@ mod tests {
 
     #[test]
     fn test_metadata_extraction() {
+        // Metadata extraction is a text-level scan over the source (capability,
+        // import, and export directives) that is independent of whether the
+        // source is accepted by the Fusabi compiler, so exercise it directly.
         let source = r#"
 @require fs:read
 import json
@@ -524,11 +493,11 @@ export fn main() {
 }
 "#;
 
-        let result = compile_source(source, &CompileOptions::default()).unwrap();
+        let metadata = extract_metadata(source, &CompileOptions::default());
 
-        assert!(result.metadata.requires_capability("fs:read"));
-        assert!(result.metadata.imports_module("json"));
-        assert!(result.metadata.get_export("main").is_some());
+        assert!(metadata.requires_capability("fs:read"));
+        assert!(metadata.imports_module("json"));
+        assert!(metadata.get_export("main").is_some());
     }
 
     #[test]
