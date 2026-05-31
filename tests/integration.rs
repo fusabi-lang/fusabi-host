@@ -81,13 +81,15 @@ fn test_compile_and_execute() {
     let result = compile_source(source, &CompileOptions::default()).unwrap();
 
     assert!(!result.bytecode.is_empty());
-    assert!(result.bytecode.starts_with(b"FZB\x00"));
+    // Real Fusabi bytecode container uses the FZB\x01 magic.
+    assert!(result.bytecode.starts_with(b"FZB\x01"));
 
     let engine = Engine::new(EngineConfig::default()).unwrap();
     let exec_result = engine.execute_bytecode(&result.bytecode).unwrap();
 
-    // Bytecode execution returns null in simulation
-    assert!(exec_result.is_null());
+    // Bytecode now executes on the real VM and yields the program's value.
+    assert_eq!(exec_result, Value::Int(42));
+    assert!(!exec_result.is_null());
 }
 
 #[test]
@@ -181,14 +183,16 @@ fn test_pool_shutdown() {
 
 #[test]
 fn test_metadata_extraction() {
+    // Metadata directives are carried as `//`-prefixed hints so the source still
+    // compiles on the real Fusabi frontend.
     let source = r#"
-@require fs:read
-@require net:request
-import json
-import http
-
-export fn main() { }
-export fn helper() { }
+// @require fs:read
+// @require net:request
+// import json
+// import http
+// export fn main()
+// export fn helper()
+42
 "#;
 
     let result = compile_source(source, &CompileOptions::default()).unwrap();

@@ -125,8 +125,8 @@ Compile Fusabi source to bytecode:
 ```rust
 use fusabi_host::compile::{compile_source, compile_file, CompileOptions};
 
-// Compile source string
-let result = compile_source("fn main() { 42 }", &CompileOptions::default())?;
+// Compile source string to real Fusabi bytecode
+let result = compile_source("let x = 42 in x + 1", &CompileOptions::default())?;
 println!("Bytecode size: {} bytes", result.bytecode.len());
 
 // Compile from file

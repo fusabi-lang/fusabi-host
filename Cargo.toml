@@ -25,6 +25,13 @@ crossbeam-channel = "0.5"
 tracing = "0.1"
 base64 = "0.22.1"
 
+# Real Fusabi compiler frontend and bytecode VM. These live as path crates inside
+# the fusabi-lang/fusabi monorepo (rust/crates/*) and are consumed here via git.
+# The "serde" feature on fusabi-vm provides chunk (de)serialization with the FZB
+# header, which is how compiled bytecode round-trips through compile -> execute.
+fusabi-frontend = { git = "https://github.com/fusabi-lang/fusabi.git", rev = "cc23a602dcc397f7bd8c6b9d8078e454491d5c19" }
+fusabi-vm = { git = "https://github.com/fusabi-lang/fusabi.git", rev = "cc23a602dcc397f7bd8c6b9d8078e454491d5c19", features = ["serde"] }
+
 # Optional dependencies
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }

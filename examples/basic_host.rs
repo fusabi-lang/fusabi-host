@@ -37,14 +37,13 @@ fn main() -> Result<()> {
     // Compile source to bytecode
     println!("\n=== Compilation ===");
 
+    // Metadata directives are carried as `//`-prefixed hints so the source
+    // compiles on the real Fusabi frontend while still exposing host metadata.
     let source = r#"
-        @require fs:read
-        import json
-
-        export fn main() {
-            let x = 42
-            x * 2
-        }
+        // @require fs:read
+        // import json
+        // export fn main()
+        let x = 42 in x * 2
     "#;
 
     let compile_result = compile_source(source, &CompileOptions::development())?;

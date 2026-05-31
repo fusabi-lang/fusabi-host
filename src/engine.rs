@@ -383,13 +383,13 @@ impl Engine {
 
         self.context.reset(self.config.limits.clone());
 
-        // Validate bytecode header
-        if bytecode.len() < 8 || &bytecode[0..4] != b"FZB\x00" {
+        // Validate bytecode header. The Fusabi VM bytecode container starts with
+        // the `FZB\x01` magic emitted by `fusabi_vm::serialize_chunk`.
+        if bytecode.len() < 5 || &bytecode[0..4] != fusabi_vm::FZB_MAGIC {
             return Err(Error::invalid_bytecode("invalid bytecode header"));
         }
 
-        // Simulate bytecode execution
-        self.simulate_bytecode_execution(bytecode)
+        self.run_bytecode(bytecode)
     }
 
     /// Cancel any ongoing execution.
@@ -449,10 +449,89 @@ impl Engine {
         Ok(Value::Null)
     }
 
-    fn simulate_bytecode_execution(&self, _bytecode: &[u8]) -> Result<Value> {
+    /// Execute compiled bytecode on the real Fusabi VM and convert the produced
+    /// value into a host [`Value`].
+    fn run_bytecode(&self, bytecode: &[u8]) -> Result<Value> {
         self.context.check_timeout()?;
-        self.context.record_instructions(100)?;
-        Ok(Value::Null)
+
+        // Deserialize the chunk and execute it on the VM. `Vm::execute_bytecode`
+        // registers the standard library and runs the top-level chunk.
+        let vm_value =
+            fusabi_vm::Vm::execute_bytecode(bytecode).map_err(|e| Error::runtime(e.to_string()))?;
+
+        // Account for the work performed. We don't have an exact instruction
+        // count from the VM here, so record a conservative figure proportional
+        // to the bytecode size.
+        self.context
+            .record_instructions((bytecode.len() as u64).max(1))?;
+
+        Ok(vm_value_to_host(vm_value))
+    }
+}
+
+/// Convert a [`fusabi_vm::Value`] produced by the VM into a host [`Value`].
+///
+/// Functions, native functions, and host data have no faithful host-side
+/// representation and are surfaced as [`Value::Error`].
+fn vm_value_to_host(value: fusabi_vm::Value) -> Value {
+    use fusabi_vm::Value as VmValue;
+
+    match value {
+        VmValue::Int(n) => Value::Int(n),
+        VmValue::Float(f) => Value::Float(f),
+        VmValue::Bool(b) => Value::Bool(b),
+        VmValue::Str(s) => Value::String(s),
+        VmValue::Unit => Value::Null,
+        VmValue::Nil => Value::List(Vec::new()),
+        VmValue::Tuple(items) => Value::List(items.into_iter().map(vm_value_to_host).collect()),
+        VmValue::Cons { head, tail } => {
+            // Flatten a cons-list into a host list.
+            let mut out = vec![vm_value_to_host(*head)];
+            let mut cur = *tail;
+            loop {
+                match cur {
+                    VmValue::Cons { head, tail } => {
+                        out.push(vm_value_to_host(*head));
+                        cur = *tail;
+                    }
+                    VmValue::Nil => break,
+                    other => {
+                        // Improper list tail: append it as the final element.
+                        out.push(vm_value_to_host(other));
+                        break;
+                    }
+                }
+            }
+            Value::List(out)
+        }
+        VmValue::Array(arr) => match arr.lock() {
+            Ok(guard) => Value::List(guard.iter().cloned().map(vm_value_to_host).collect()),
+            Err(_) => Value::Error("array mutex poisoned".to_string()),
+        },
+        VmValue::Record(map) | VmValue::Map(map) => match map.lock() {
+            Ok(guard) => Value::Map(
+                guard
+                    .iter()
+                    .map(|(k, v)| (k.clone(), vm_value_to_host(v.clone())))
+                    .collect(),
+            ),
+            Err(_) => Value::Error("map mutex poisoned".to_string()),
+        },
+        VmValue::Variant {
+            type_name,
+            variant_name,
+            fields,
+        } => {
+            let mut map = HashMap::new();
+            map.insert("type".to_string(), Value::String(type_name));
+            map.insert("variant".to_string(), Value::String(variant_name));
+            map.insert(
+                "fields".to_string(),
+                Value::List(fields.into_iter().map(vm_value_to_host).collect()),
+            );
+            Value::Map(map)
+        }
+        other => Value::Error(format!("unsupported VM value: {:?}", other)),
     }
 }
 
@@ -476,6 +555,38 @@ mod tests {
         let engine = Engine::new(EngineConfig::default()).unwrap();
         assert!(engine.id() > 0);
         assert!(engine.is_healthy());
+    }
+
+    #[test]
+    fn test_execute_bytecode_returns_real_value() {
+        use crate::compile::{compile_source, CompileOptions};
+
+        let engine = Engine::new(EngineConfig::default()).unwrap();
+
+        // Integer arithmetic round-trips through the real compiler + VM.
+        let compiled = compile_source("1 + 2", &CompileOptions::default()).unwrap();
+        let result = engine.execute_bytecode(&compiled.bytecode).unwrap();
+        assert_eq!(result, Value::Int(3));
+
+        // String literal.
+        let compiled = compile_source("\"hello\"", &CompileOptions::default()).unwrap();
+        let result = engine.execute_bytecode(&compiled.bytecode).unwrap();
+        assert_eq!(result, Value::String("hello".to_string()));
+
+        // let-binding evaluates the body, not null.
+        let compiled = compile_source("let x = 42 in x + 1", &CompileOptions::default()).unwrap();
+        let result = engine.execute_bytecode(&compiled.bytecode).unwrap();
+        assert_eq!(result, Value::Int(43));
+        assert!(!result.is_null());
+    }
+
+    #[test]
+    fn test_execute_bytecode_rejects_garbage() {
+        let engine = Engine::new(EngineConfig::default()).unwrap();
+        assert!(matches!(
+            engine.execute_bytecode(b"not bytecode"),
+            Err(Error::InvalidBytecode(_))
+        ));
     }
 
     #[test]
