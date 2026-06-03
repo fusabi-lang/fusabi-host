@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Compile-time schema metadata API: `.fsx` authors can declare input/output
+  JSON Schemas with a `(* [<schema(input = "...", output = "...")>] *)`
+  attribute, which the compiler surfaces in `Metadata.custom` under the stable
+  keys `input_schema` / `output_schema`. New accessors `Metadata::input_schema`,
+  `Metadata::output_schema`, and `Metadata::get_custom`, plus the public
+  `INPUT_SCHEMA_KEY` / `OUTPUT_SCHEMA_KEY` constants. Closes #13.
+
 ### Changed
 - `compile_source`/`compile_file` now produce real Fusabi bytecode by invoking the
   `fusabi-frontend` compiler and serializing the resulting VM chunk (FZB container),

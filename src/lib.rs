@@ -50,7 +50,7 @@ mod value;
 pub use capabilities::{Capabilities, Capability};
 pub use compile::{
     compile_file, compile_source, extract_bytecode_metadata, validate_bytecode, CompileOptions,
-    CompileResult, Metadata,
+    CompileResult, Metadata, INPUT_SCHEMA_KEY, OUTPUT_SCHEMA_KEY,
 };
 pub use convert::{FromValue, IntoValue, ValueConversionError};
 
