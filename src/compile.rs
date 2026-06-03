@@ -134,6 +134,18 @@ pub struct ImportInfo {
     pub version: Option<String>,
 }
 
+/// Stable [`Metadata::custom`] key for the author-declared input JSON Schema.
+///
+/// The value is the raw JSON Schema text exactly as written in the `.fsx`
+/// source. Consumers parse it with their JSON library of choice, e.g.
+/// `serde_json::from_str(metadata.input_schema()?)`.
+pub const INPUT_SCHEMA_KEY: &str = "input_schema";
+
+/// Stable [`Metadata::custom`] key for the author-declared output JSON Schema.
+///
+/// See [`INPUT_SCHEMA_KEY`] for value semantics.
+pub const OUTPUT_SCHEMA_KEY: &str = "output_schema";
+
 impl Metadata {
     /// Check if a capability is required.
     pub fn requires_capability(&self, cap: &str) -> bool {
@@ -148,6 +160,31 @@ impl Metadata {
     /// Check if a module is imported.
     pub fn imports_module(&self, module: &str) -> bool {
         self.imports.iter().any(|i| i.module == module)
+    }
+
+    /// Get a custom metadata entry by key.
+    ///
+    /// This is the general-purpose accessor for compile-time metadata declared
+    /// in `.fsx` source (see [`INPUT_SCHEMA_KEY`] / [`OUTPUT_SCHEMA_KEY`] for the
+    /// stable keys recognised by the compiler).
+    pub fn get_custom(&self, key: &str) -> Option<&str> {
+        self.custom.get(key).map(|s| s.as_str())
+    }
+
+    /// Get the author-declared input JSON Schema, if one was declared.
+    ///
+    /// Returns the raw JSON Schema text stored under [`INPUT_SCHEMA_KEY`]. The
+    /// string is the schema verbatim from the source; parse it with your JSON
+    /// library of choice.
+    pub fn input_schema(&self) -> Option<&str> {
+        self.get_custom(INPUT_SCHEMA_KEY)
+    }
+
+    /// Get the author-declared output JSON Schema, if one was declared.
+    ///
+    /// Returns the raw JSON Schema text stored under [`OUTPUT_SCHEMA_KEY`].
+    pub fn output_schema(&self) -> Option<&str> {
+        self.get_custom(OUTPUT_SCHEMA_KEY)
     }
 }
 
@@ -381,7 +418,118 @@ fn extract_metadata(source: &str, options: &CompileOptions) -> Metadata {
         }
     }
 
+    // Schema attributes can span multiple lines (triple-quoted JSON), so they
+    // are scanned over the whole source rather than line-by-line.
+    extract_schema_metadata(source, &mut metadata.custom);
+
     metadata
+}
+
+/// Extract `[<schema(input = ..., output = ...)>]` attributes from `.fsx`
+/// source and surface them in `custom` under the stable schema keys.
+///
+/// The schema attribute is written inside a Fusabi block comment `(* ... *)` so
+/// that the real `fusabi-frontend` compiler accepts the source unchanged (the
+/// attribute is not — yet — part of the frontend grammar). This mirrors the
+/// existing convention in [`extract_metadata`], where `@require` / `import`
+/// hints may also ride along inside comments. The attribute body is recognised
+/// wherever it appears, so a bare (un-commented) form is parsed too once the
+/// grammar gains native support.
+///
+/// Recognised form (whitespace-insensitive, may span multiple lines):
+///
+/// ```fsharp
+/// (* [<schema(
+///     input = """{ "type": "object", "properties": { "task": { "type": "string" } } }""",
+///     output = """{ "type": "object", "properties": { "plan": { "type": "array" } } }"""
+/// )>] *)
+/// let invoke input = ...
+/// ```
+///
+/// Either `input` / `output` argument may be omitted. Both ordinary `"..."`
+/// and triple-quoted `"""..."""` string literals are accepted; triple-quoted
+/// is recommended for JSON so inner `"` need no escaping. When the same key is
+/// declared more than once, the last declaration wins (matching the behaviour
+/// of a re-assignment in source order).
+fn extract_schema_metadata(source: &str, custom: &mut HashMap<String, String>) {
+    const OPEN: &str = "[<schema(";
+
+    let mut rest = source;
+    while let Some(idx) = rest.find(OPEN) {
+        let args_start = idx + OPEN.len();
+        // The attribute body ends at the closing `)>]`.
+        let Some(close) = rest[args_start..].find(")>]") else {
+            break;
+        };
+        let body = &rest[args_start..args_start + close];
+
+        if let Some(value) = parse_schema_arg(body, "input") {
+            custom.insert(INPUT_SCHEMA_KEY.to_string(), value);
+        }
+        if let Some(value) = parse_schema_arg(body, "output") {
+            custom.insert(OUTPUT_SCHEMA_KEY.to_string(), value);
+        }
+
+        rest = &rest[args_start + close + ")>]".len()..];
+    }
+}
+
+/// Parse a single named argument (`name = <string-literal>`) out of a schema
+/// attribute body, returning the unquoted contents of the string literal.
+fn parse_schema_arg(body: &str, name: &str) -> Option<String> {
+    // Find `name` followed (after optional whitespace) by `=`.
+    let mut search = body;
+    let mut offset = 0;
+    let value_start = loop {
+        let rel = search.find(name)?;
+        let after = offset + rel + name.len();
+        // Ensure this is a standalone identifier, not a substring of another.
+        let before_ok = body[..offset + rel]
+            .chars()
+            .next_back()
+            .map(|c| !c.is_alphanumeric() && c != '_')
+            .unwrap_or(true);
+        let eq_rest = body[after..].trim_start();
+        if before_ok && eq_rest.starts_with('=') {
+            break after + (body[after..].len() - eq_rest.len()) + 1;
+        }
+        offset = after;
+        search = &body[offset..];
+    };
+
+    let val = body[value_start..].trim_start();
+    if let Some(after_open) = val.strip_prefix("\"\"\"") {
+        // Triple-quoted literal.
+        let end = after_open.find("\"\"\"")?;
+        Some(after_open[..end].trim().to_string())
+    } else if let Some(after_open) = val.strip_prefix('"') {
+        // Ordinary literal: JSON inside needs escaped quotes. Walk to the
+        // closing (unescaped) quote and unescape the common string escapes so
+        // the surfaced value is the literal schema text (e.g. `\"` -> `"`).
+        let mut out = String::new();
+        let mut chars = after_open.chars();
+        while let Some(c) = chars.next() {
+            match c {
+                '"' => return Some(out),
+                '\\' => match chars.next()? {
+                    '"' => out.push('"'),
+                    '\\' => out.push('\\'),
+                    '/' => out.push('/'),
+                    'n' => out.push('\n'),
+                    't' => out.push('\t'),
+                    'r' => out.push('\r'),
+                    other => {
+                        out.push('\\');
+                        out.push(other);
+                    }
+                },
+                other => out.push(other),
+            }
+        }
+        None
+    } else {
+        None
+    }
 }
 
 fn check_warnings(source: &str) -> Vec<CompileWarning> {
@@ -513,5 +661,95 @@ export fn main() {
     fn test_compile_file_wrong_extension() {
         let result = compile_file(Path::new("test.txt"), &CompileOptions::default());
         assert!(matches!(result, Err(Error::Compilation(_))));
+    }
+
+    #[cfg(feature = "serde-support")]
+    #[test]
+    fn test_schema_metadata_triple_quoted() {
+        let source = r#"
+(* [<schema(input = """
+  { "type": "object", "properties": { "task": { "type": "string" } } }
+""", output = """
+  { "type": "object", "properties": { "plan": { "type": "array" } } }
+""")>] *)
+let invoke input =
+    input
+"#;
+
+        let result = compile_source(source, &CompileOptions::default()).unwrap();
+
+        let input = result.metadata.input_schema().expect("input schema");
+        let output = result.metadata.output_schema().expect("output schema");
+
+        // Surfaced under the stable keys too.
+        assert_eq!(result.metadata.get_custom(INPUT_SCHEMA_KEY), Some(input));
+        assert_eq!(result.metadata.get_custom(OUTPUT_SCHEMA_KEY), Some(output));
+
+        // The raw schema text is valid JSON the consumer can parse.
+        let parsed: serde_json::Value = serde_json::from_str(input).unwrap();
+        assert_eq!(parsed["type"], "object");
+        assert_eq!(parsed["properties"]["task"]["type"], "string");
+
+        let parsed_out: serde_json::Value = serde_json::from_str(output).unwrap();
+        assert_eq!(parsed_out["properties"]["plan"]["type"], "array");
+    }
+
+    #[test]
+    fn test_schema_metadata_input_only() {
+        let source = r#"
+(* [<schema(input = """{ "type": "object" }""")>] *)
+let invoke input = input
+"#;
+        let result = compile_source(source, &CompileOptions::default()).unwrap();
+        assert_eq!(
+            result.metadata.input_schema(),
+            Some("{ \"type\": \"object\" }")
+        );
+        assert!(result.metadata.output_schema().is_none());
+    }
+
+    #[cfg(feature = "serde-support")]
+    #[test]
+    fn test_schema_metadata_ordinary_quotes() {
+        let source = r#"(* [<schema(output = "{ \"type\": \"number\" }")>] *)
+let invoke input = input
+"#;
+        let result = compile_source(source, &CompileOptions::default()).unwrap();
+        let output = result.metadata.output_schema().expect("output schema");
+        let parsed: serde_json::Value = serde_json::from_str(output).unwrap();
+        assert_eq!(parsed["type"], "number");
+    }
+
+    #[test]
+    fn test_schema_metadata_absent() {
+        let source = "let invoke input = input";
+        let result = compile_source(source, &CompileOptions::default()).unwrap();
+        assert!(result.metadata.input_schema().is_none());
+        assert!(result.metadata.output_schema().is_none());
+        assert!(result.metadata.custom.is_empty());
+    }
+
+    #[cfg(feature = "serde-support")]
+    #[test]
+    fn test_schema_metadata_last_wins() {
+        let source = r#"
+(* [<schema(input = """{ "v": 1 }""")>] *)
+(* [<schema(input = """{ "v": 2 }""")>] *)
+let invoke input = input
+"#;
+        let result = compile_source(source, &CompileOptions::default()).unwrap();
+        let parsed: serde_json::Value =
+            serde_json::from_str(result.metadata.input_schema().unwrap()).unwrap();
+        assert_eq!(parsed["v"], 2);
+    }
+
+    #[cfg(feature = "serde-support")]
+    #[test]
+    fn test_parse_schema_arg_identifier_boundary() {
+        // A key that merely contains "input" as a substring must not match.
+        let body = r#"my_input_thing = """x""", input = """{ "ok": true }""""#;
+        let value = parse_schema_arg(body, "input").expect("input arg");
+        let parsed: serde_json::Value = serde_json::from_str(&value).unwrap();
+        assert_eq!(parsed["ok"], true);
     }
 }
